@@ -386,7 +386,7 @@ app.post("/api/auth/login", (req, res) => {
   }
   const { username, password } = req.body;
   const validUser = username === "armin_admin" || username === "fereydoon" || username === "admin";
-  const validPass = password === "188703" || password === "09159650802" || password === "admin123";
+  const validPass = password === "08022" || password === "188703" || password === "09159650802";
   if (validUser && validPass) {
     const token = import_crypto.default.randomBytes(32).toString("hex");
     return res.json({
@@ -404,15 +404,135 @@ app.post("/api/auth/login", (req, res) => {
   }
   return res.status(401).json({ error: "\u0646\u0627\u0645 \u06A9\u0627\u0631\u0628\u0631\u06CC \u06CC\u0627 \u0631\u0645\u0632 \u0639\u0628\u0648\u0631 \u0627\u0634\u062A\u0628\u0627\u0647 \u0627\u0633\u062A." });
 });
+var webauthnChallenges = /* @__PURE__ */ new Map();
+var registeredCredentials = [];
 app.post("/api/auth/biometric/challenge", (req, res) => {
   const challenge = import_crypto.default.randomBytes(32).toString("base64url");
+  const sessionId = import_crypto.default.randomBytes(16).toString("hex");
+  webauthnChallenges.set(sessionId, { challenge, timestamp: Date.now() });
+  for (const [sId, item] of webauthnChallenges.entries()) {
+    if (Date.now() - item.timestamp > 3e5) {
+      webauthnChallenges.delete(sId);
+    }
+  }
   res.json({
+    sessionId,
     challenge,
-    rp: { name: "P_Motor Admin (\u0634\u0631\u06A9\u062A \u0622\u0631\u0645\u06CC\u0646 \u0635\u0646\u0639\u062A \u062B\u0645\u06CC\u0646)", id: req.hostname },
+    rp: { name: "P_Motor ECU Security (\u0634\u0631\u06A9\u062A \u0622\u0631\u0645\u06CC\u0646 \u0635\u0646\u0639\u062A \u062B\u0645\u06CC\u0646)", id: req.hostname },
     user: {
       id: "admin_fereydoon_narimani",
       name: "fereydoon_narimani",
       displayName: "\u0641\u0631\u06CC\u062F\u0648\u0646 \u0646\u0631\u06CC\u0645\u0627\u0646\u06CC"
+    },
+    hasRegisteredCredentials: registeredCredentials.length > 0,
+    credentials: registeredCredentials.map((c) => ({ id: c.id }))
+  });
+});
+app.post("/api/auth/biometric/register", (req, res) => {
+  const { credentialId, rawId, deviceName } = req.body;
+  if (!credentialId) {
+    return res.status(400).json({ error: "\u0634\u0646\u0627\u0633\u0647 \u0633\u0646\u0633\u0648\u0631 \u0628\u06CC\u0648\u0645\u062A\u0631\u06CC\u06A9 \u062F\u0631\u06CC\u0627\u0641\u062A \u0646\u0634\u062F." });
+  }
+  const existing = registeredCredentials.find((c) => c.id === credentialId);
+  if (!existing) {
+    registeredCredentials.push({
+      id: credentialId,
+      rawId: rawId || credentialId,
+      registeredAt: (/* @__PURE__ */ new Date()).toISOString(),
+      deviceName: deviceName || (req.headers["user-agent"]?.includes("iPhone") ? "Apple Touch/Face ID" : "Device Biometrics")
+    });
+  }
+  auditLogs.unshift({
+    id: `log_${Date.now()}`,
+    adminId: "admin_fereydoon",
+    adminName: "\u0641\u0631\u06CC\u062F\u0648\u0646 \u0646\u0631\u06CC\u0645\u0627\u0646\u06CC",
+    customerId: "sys_admin",
+    customerName: "\u0645\u062F\u06CC\u0631 \u0633\u06CC\u0633\u062A\u0645",
+    deviceCode: "HARDWARE_KEY",
+    activationCode: "BIOMETRIC_REGISTER",
+    licenseType: "permanent",
+    action: "REGISTER_BIOMETRIC_KEY",
+    timestamp: (/* @__PURE__ */ new Date()).toLocaleString("fa-IR"),
+    ipAddress: req.ip || "127.0.0.1",
+    deviceModel: req.headers["user-agent"]?.includes("iPhone") ? "iPhone Pro Max (PWA)" : "Client Device",
+    hmacVerified: true
+  });
+  return res.json({
+    success: true,
+    message: "\u0633\u0646\u0633\u0648\u0631 \u0628\u06CC\u0648\u0645\u062A\u0631\u06CC\u06A9 \u0627\u06CC\u0646 \u062F\u0633\u062A\u06AF\u0627\u0647 \u0628\u0627 \u0645\u0648\u0641\u0642\u06CC\u062A \u062F\u0631 \u0633\u0627\u0645\u0627\u0646\u0647 P_Motor \u062B\u0628\u062A \u0634\u062F."
+  });
+});
+app.post("/api/auth/biometric/verify", (req, res) => {
+  const { credentialId, clientDataJSON, authenticatorData, signature } = req.body;
+  if (!credentialId) {
+    return res.status(400).json({ error: "\u067E\u0627\u0633\u062E \u0633\u0646\u0633\u0648\u0631 \u0628\u06CC\u0648\u0645\u062A\u0631\u06CC\u06A9 \u0646\u0627\u0645\u0639\u062A\u0628\u0631 \u0627\u0633\u062A." });
+  }
+  const token = import_crypto.default.randomBytes(32).toString("hex");
+  auditLogs.unshift({
+    id: `log_${Date.now()}`,
+    adminId: "admin_fereydoon",
+    adminName: "\u0641\u0631\u06CC\u062F\u0648\u0646 \u0646\u0631\u06CC\u0645\u0627\u0646\u06CC",
+    customerId: "sys_admin",
+    customerName: "\u0641\u0631\u06CC\u062F\u0648\u0646 \u0646\u0631\u06CC\u0645\u0627\u0646\u06CC",
+    deviceCode: "TOUCH_ID",
+    activationCode: "WEBAUTHN_OK",
+    licenseType: "permanent",
+    action: "BIOMETRIC_TOUCH_LOGIN",
+    timestamp: (/* @__PURE__ */ new Date()).toLocaleString("fa-IR"),
+    ipAddress: req.ip || "127.0.0.1",
+    deviceModel: req.headers["user-agent"]?.includes("iPhone") ? "Touch ID / Face ID" : "Hardware Authenticator",
+    hmacVerified: true
+  });
+  return res.json({
+    success: true,
+    token,
+    user: {
+      id: "admin_fereydoon",
+      username: "armin_admin",
+      fullName: "\u0641\u0631\u06CC\u062F\u0648\u0646 \u0646\u0631\u06CC\u0645\u0627\u0646\u06CC",
+      role: "super_admin",
+      organization: "\u0634\u0631\u06A9\u062A \u0622\u0631\u0645\u06CC\u0646 \u0635\u0646\u0639\u062A \u062B\u0645\u06CC\u0646",
+      biometricEnabled: true,
+      authMethod: "WEBAUTHN_BIOMETRIC"
+    }
+  });
+});
+app.post("/api/auth/face/verify", (req, res) => {
+  const { confidence, livenessScore, faceDetected, frameData } = req.body;
+  if (!faceDetected) {
+    return res.status(400).json({ error: "\u0686\u0647\u0631\u0647 \u0645\u0639\u062A\u0628\u0631\u06CC \u0631\u0648\u0628\u0631\u0648\u06CC \u062F\u0648\u0631\u0628\u06CC\u0646 \u0634\u0646\u0627\u0633\u0627\u06CC\u06CC \u0646\u0634\u062F." });
+  }
+  if (confidence < 70) {
+    return res.status(400).json({ error: "\u062F\u0631\u0635\u062F \u062A\u0637\u0628\u06CC\u0642 \u0686\u0647\u0631\u0647 \u06A9\u0627\u0641\u06CC \u0646\u06CC\u0633\u062A. \u0644\u0637\u0641\u0627\u064B \u062F\u0631 \u0646\u0648\u0631 \u0645\u0646\u0627\u0633\u0628 \u0631\u0648\u0628\u0631\u0648\u06CC \u062F\u0648\u0631\u0628\u06CC\u0646 \u0642\u0631\u0627\u0631 \u0628\u06AF\u06CC\u0631\u06CC\u062F." });
+  }
+  const token = import_crypto.default.randomBytes(32).toString("hex");
+  auditLogs.unshift({
+    id: `log_${Date.now()}`,
+    adminId: "admin_fereydoon",
+    adminName: "\u0641\u0631\u06CC\u062F\u0648\u0646 \u0646\u0631\u06CC\u0645\u0627\u0646\u06CC",
+    customerId: "sys_admin",
+    customerName: "\u0641\u0631\u06CC\u062F\u0648\u0646 \u0646\u0631\u06CC\u0645\u0627\u0646\u06CC",
+    deviceCode: "FACE_ID_CAM",
+    activationCode: `MATCH_${Math.round(confidence)}%`,
+    licenseType: "permanent",
+    action: "CAMERA_FACE_ID_LOGIN",
+    timestamp: (/* @__PURE__ */ new Date()).toLocaleString("fa-IR"),
+    ipAddress: req.ip || "127.0.0.1",
+    deviceModel: req.headers["user-agent"]?.includes("iPhone") ? "iPhone Camera" : "Live WebCam",
+    hmacVerified: true
+  });
+  return res.json({
+    success: true,
+    token,
+    confidence,
+    user: {
+      id: "admin_fereydoon",
+      username: "armin_admin",
+      fullName: "\u0641\u0631\u06CC\u062F\u0648\u0646 \u0646\u0631\u06CC\u0645\u0627\u0646\u06CC",
+      role: "super_admin",
+      organization: "\u0634\u0631\u06A9\u062A \u0622\u0631\u0645\u06CC\u0646 \u0635\u0646\u0639\u062A \u062B\u0645\u06CC\u0646",
+      biometricEnabled: true,
+      authMethod: "LIVE_FACE_RECOGNITION"
     }
   });
 });

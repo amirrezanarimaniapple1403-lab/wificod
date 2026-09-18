@@ -9,57 +9,48 @@
     <meta property="og:description" content="سامانه مدیریت فعال‌سازی و صدور لایسنس نرم‌افزار دیاگ P_Motor - شرکت آرمین صنعت ثمین" />
     <meta property="og:type" content="website" />
     <meta name="twitter:card" content="summary_large_image" />
-
+    
+    <!-- Anti-cache meta headers for instant live preview updates -->
     <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate" />
     <meta http-equiv="Pragma" content="no-cache" />
     <meta http-equiv="Expires" content="0" />
-
-    <!-- ✅ PWA — مسیرهای مطلق با /wificod/ -->
-    <link rel="manifest" href="/wificod/manifest.json" />
-    <link rel="icon" type="image/svg+xml" href="/wificod/icon.svg" />
-    <link rel="icon" type="image/png" href="/wificod/icon-192.png" />
-    <link rel="apple-touch-icon" href="/wificod/apple-touch-icon.png" />
-    <meta name="theme-color" content="#006C4D" />
+    
+    <!-- PWA & Mobile Icons -->
+    <link rel="manifest" href="/manifest.json" />
+    <link rel="icon" type="image/svg+xml" href="/icon.svg" />
+    <link rel="apple-touch-icon" href="/apple-touch-icon.png" />
+    <meta name="theme-color" content="#F5F7FC" />
     <meta name="mobile-web-app-capable" content="yes" />
     <meta name="apple-mobile-web-app-capable" content="yes" />
     <meta name="apple-mobile-web-app-status-bar-style" content="default" />
     <meta name="apple-mobile-web-app-title" content="P_Motor Admin" />
 
+    <!-- Google Fonts: Vazirmatn, Plus Jakarta Sans, JetBrains Mono, Space Grotesk, Outfit, Material Symbols -->
     <link rel="preconnect" href="https://fonts.googleapis.com" />
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
-    <link
-      href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500;600;700;800&family=Plus+Jakarta+Sans:wght@400;500;600;700;800&family=Vazirmatn:wght@300;400;500;600;700;800;900&display=swap"
-      rel="stylesheet"
-    />
-
-    <!-- ✅ فایل‌های بیلد با مسیر مطلق /wificod/ -->
-    <script type="module" crossorigin src="/wificod/assets/index-CXNGHxN7.js"></script>
-    <link rel="stylesheet" crossorigin href="/wificod/assets/index-2BaLexX5.css" />
+    <link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500;600;700;800&family=Outfit:wght@400;500;600;700;800;900&family=Plus+Jakarta+Sans:wght@400;500;600;700;800&family=Space+Grotesk:wght@400;500;600;700&family=Vazirmatn:wght@300;400;500;600;700;800;900&family=Material+Symbols+Outlined:opsz,wght,FILL,GRAD@20..48,100..700,0..1,-50..200&display=swap" rel="stylesheet" />
+    <script type="module" crossorigin src="/assets/index-jmPWb01U.js"></script>
+    <link rel="stylesheet" crossorigin href="/assets/index-Dhppi-B8.css">
   </head>
   <body class="bg-[#F5F7FC] text-[#101828] font-sans antialiased selection:bg-[#00DFA2] selection:text-[#101828] min-h-screen">
     <div id="root"></div>
     <script>
-      // ثبت Service Worker اختصاصی برای /wificod/
+      // Automatically purge stale Service Workers and browser caches to ensure live sync
       if ('serviceWorker' in navigator) {
-        window.addEventListener('load', function () {
-          navigator.serviceWorker
-            .register('/wificod/sw.js', { scope: '/wificod/' })
-            .then(function (reg) {
-              console.log('[wificod] SW registered ✓', reg.scope);
-            })
-            .catch(function (err) {
-              console.warn('[wificod] SW registration failed:', err);
-            });
+        navigator.serviceWorker.getRegistrations().then(function(registrations) {
+          for (var reg of registrations) {
+            reg.unregister();
+          }
         });
       }
-
-      // لاگ دیباگ
-      window.addEventListener('beforeinstallprompt', function () {
-        console.log('[wificod] Install prompt available ✓');
-      });
-      window.addEventListener('appinstalled', function () {
-        console.log('[wificod] App installed ✓');
-      });
+      if ('caches' in window) {
+        caches.keys().then(function(names) {
+          for (var name of names) {
+            caches.delete(name);
+          }
+        });
+      }
     </script>
   </body>
 </html>
+

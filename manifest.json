@@ -1,38 +1,37 @@
 {
-  "id": "/wificod/",
+  "id": "/",
   "name": "P_Motor Admin - مدیریت فعال‌سازی دیاگ",
   "short_name": "P_Motor",
   "description": "سامانه مدیریت فعال‌سازی و صدور لایسنس نرم‌افزار دیاگ P_Motor - شرکت آرمین صنعت ثمین",
-  "start_url": "/wificod/",
-  "scope": "/wificod/",
+  "start_url": "/",
+  "scope": "/",
   "display": "standalone",
   "orientation": "portrait",
   "background_color": "#F5F7FC",
-  "theme_color": "#006C4D",
+  "theme_color": "#F5F7FC",
   "dir": "rtl",
   "lang": "fa",
-  "categories": ["productivity", "utilities"],
   "icons": [
     {
-      "src": "/wificod/icon-192.png",
+      "src": "/icon-192.png",
       "sizes": "192x192",
       "type": "image/png",
       "purpose": "any"
     },
     {
-      "src": "/wificod/icon-512.png",
+      "src": "/icon-512.png",
       "sizes": "512x512",
       "type": "image/png",
       "purpose": "any"
     },
     {
-      "src": "/wificod/icon-maskable.png",
+      "src": "/icon-maskable.png",
       "sizes": "512x512",
       "type": "image/png",
       "purpose": "maskable"
     },
     {
-      "src": "/wificod/icon.svg",
+      "src": "/icon.svg",
       "sizes": "any",
       "type": "image/svg+xml",
       "purpose": "any"

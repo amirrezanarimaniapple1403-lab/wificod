@@ -1,18 +1,21 @@
-// Service Worker for P_Motor Admin (wificod)
-const CACHE_NAME = 'pmotor-admin-v4';
+// Service Worker اختصاصی P_Motor Admin (wificod)
+const CACHE_NAME = 'pmotor-admin-v1';
+const SCOPE_PATH = '/wificod/';
 const ASSETS_TO_CACHE = [
   '/wificod/',
   '/wificod/index.html',
-  '/wificod/manifest.webmanifest',
+  '/wificod/manifest.json',
   '/wificod/icon-192.png',
-  '/wificod/icon-512.png'
+  '/wificod/icon-512.png',
+  '/wificod/icon.svg'
 ];
 
 self.addEventListener('install', (event) => {
+  console.log('[wificod SW] Installing...');
   event.waitUntil(
     caches.open(CACHE_NAME).then((cache) => {
       return cache.addAll(ASSETS_TO_CACHE).catch((err) => {
-        console.warn('[SW wificod] Cache warning:', err);
+        console.warn('[wificod SW] Some assets failed:', err);
       });
     })
   );
@@ -20,47 +23,50 @@ self.addEventListener('install', (event) => {
 });
 
 self.addEventListener('activate', (event) => {
+  console.log('[wificod SW] Activating...');
   event.waitUntil(
     caches.keys().then((keys) => {
       return Promise.all(
         keys.map((key) => {
-          // فقط کش‌های همین اپ را پاک کن، به بقیه کار نداشته باش
+          // فقط کش‌های همین اپ (pmotor-admin-*) را پاک کن
           if (key.startsWith('pmotor-admin-') && key !== CACHE_NAME) {
+            console.log('[wificod SW] Deleting old cache:', key);
             return caches.delete(key);
           }
         })
       );
-    })
+    }).then(() => self.clients.claim())
   );
-  self.clients.claim();
 });
 
 self.addEventListener('fetch', (event) => {
-  // درخواست‌های API و سایر ساب‌پوشه‌ها را نادیده بگیر
-  if (event.request.url.includes('/api/')) return;
+  // به API و درخواست‌های خارج از محدوده کار نداشته باش
   if (event.request.method !== 'GET') return;
+  if (event.request.url.includes('/api/')) return;
 
-  // فقط درخواست‌های داخل /wificod/ را مدیریت کن
   const url = new URL(event.request.url);
-  if (!url.pathname.startsWith('/wificod/')) return;
+  // فقط درخواست‌های داخلی /wificod/ را مدیریت کن
+  if (!url.pathname.startsWith(SCOPE_PATH)) return;
 
   if (event.request.mode === 'navigate') {
     event.respondWith(
-      fetch(event.request).catch(() => caches.match('/wificod/index.html'))
+      fetch(event.request).catch(() =>
+        caches.match('/wificod/index.html')
+      )
     );
     return;
   }
 
   event.respondWith(
-    caches.match(event.request).then((cachedResponse) => {
-      if (cachedResponse) return cachedResponse;
+    caches.match(event.request).then((cached) => {
+      if (cached) return cached;
       return fetch(event.request).then((response) => {
         if (!response || response.status !== 200 || response.type !== 'basic') {
           return response;
         }
-        const responseToCache = response.clone();
+        const toCache = response.clone();
         caches.open(CACHE_NAME).then((cache) => {
-          cache.put(event.request, responseToCache);
+          cache.put(event.request, toCache);
         });
         return response;
       }).catch(() => {
@@ -68,6 +74,26 @@ self.addEventListener('fetch', (event) => {
           return caches.match('/wificod/index.html');
         }
       });
+    })
+  );
+});
+
+// Web Push
+self.addEventListener('push', (event) => {
+  let data = {
+    title: 'P_Motor Admin',
+    body: 'اطلاعیه جدید از سامانه مدیریت دیاگ',
+    icon: '/wificod/icon-192.png'
+  };
+  if (event.data) {
+    try { data = Object.assign(data, event.data.json()); }
+    catch { data.body = event.data.text(); }
+  }
+  event.waitUntil(
+    self.registration.showNotification(data.title, {
+      body: data.body,
+      icon: data.icon,
+      tag: 'pmotor-admin-notification'
     })
   );
 });

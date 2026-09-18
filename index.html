@@ -10,22 +10,21 @@
     <meta property="og:type" content="website" />
     <meta name="twitter:card" content="summary_large_image" />
 
-    <!-- Anti-cache -->
     <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate" />
     <meta http-equiv="Pragma" content="no-cache" />
     <meta http-equiv="Expires" content="0" />
 
-    <!-- PWA & Mobile Icons (مسیرهای نسبی) -->
-    <link rel="manifest" href="./manifest.json" />
-    <link rel="icon" type="image/svg+xml" href="./icon.svg" />
-    <link rel="apple-touch-icon" href="./apple-touch-icon.png" />
-    <meta name="theme-color" content="#F5F7FC" />
+    <!-- ✅ PWA — مسیرهای مطلق با /wificod/ -->
+    <link rel="manifest" href="/wificod/manifest.json" />
+    <link rel="icon" type="image/svg+xml" href="/wificod/icon.svg" />
+    <link rel="icon" type="image/png" href="/wificod/icon-192.png" />
+    <link rel="apple-touch-icon" href="/wificod/apple-touch-icon.png" />
+    <meta name="theme-color" content="#006C4D" />
     <meta name="mobile-web-app-capable" content="yes" />
     <meta name="apple-mobile-web-app-capable" content="yes" />
     <meta name="apple-mobile-web-app-status-bar-style" content="default" />
     <meta name="apple-mobile-web-app-title" content="P_Motor Admin" />
 
-    <!-- Google Fonts -->
     <link rel="preconnect" href="https://fonts.googleapis.com" />
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
     <link
@@ -33,28 +32,34 @@
       rel="stylesheet"
     />
 
-    <!-- ✅ فایل‌های بیلد شده با مسیر نسبی -->
-    <script type="module" crossorigin src="./assets/index-CXNGHxN7.js"></script>
-    <link rel="stylesheet" crossorigin href="./assets/index-2BaLexX5.css" />
+    <!-- ✅ فایل‌های بیلد با مسیر مطلق /wificod/ -->
+    <script type="module" crossorigin src="/wificod/assets/index-CXNGHxN7.js"></script>
+    <link rel="stylesheet" crossorigin href="/wificod/assets/index-2BaLexX5.css" />
   </head>
   <body class="bg-[#F5F7FC] text-[#101828] font-sans antialiased selection:bg-[#00DFA2] selection:text-[#101828] min-h-screen">
     <div id="root"></div>
     <script>
-      // پاکسازی کش و Service Workerهای قدیمی
+      // ثبت Service Worker اختصاصی برای /wificod/
       if ('serviceWorker' in navigator) {
-        navigator.serviceWorker.getRegistrations().then(function (registrations) {
-          for (var reg of registrations) {
-            reg.unregister();
-          }
+        window.addEventListener('load', function () {
+          navigator.serviceWorker
+            .register('/wificod/sw.js', { scope: '/wificod/' })
+            .then(function (reg) {
+              console.log('[wificod] SW registered ✓', reg.scope);
+            })
+            .catch(function (err) {
+              console.warn('[wificod] SW registration failed:', err);
+            });
         });
       }
-      if ('caches' in window) {
-        caches.keys().then(function (names) {
-          for (var name of names) {
-            caches.delete(name);
-          }
-        });
-      }
+
+      // لاگ دیباگ
+      window.addEventListener('beforeinstallprompt', function () {
+        console.log('[wificod] Install prompt available ✓');
+      });
+      window.addEventListener('appinstalled', function () {
+        console.log('[wificod] App installed ✓');
+      });
     </script>
   </body>
 </html>
